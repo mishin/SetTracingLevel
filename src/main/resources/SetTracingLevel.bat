@@ -1,0 +1,1 @@
+java -jar SetTracingLevel.1.0.0-SNAPSHOT.jar > SetTracingLevel.log 2>&1
