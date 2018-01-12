@@ -19,7 +19,7 @@
     <xq:step name="Call sup_header_new_trans" type="PROCESS" endpoint_ref="sup_header_new_trans"/>
     <xq:step name="Wrap in RunScript" type="SERVICE" endpoint_ref="Transform">
       <xq:params>
-        <xq:stringParam name="stylesheetURL" url="sonicfs:///RosEuroBank/MailingWS/resources/xsl/wrap_RunScript_status.xsl"/>
+        <xq:stringParam name="stylesheetURL" url="sonicfs:///Domain/MailingWS/resources/xsl/wrap_RunScript_status.xsl"/>
         <xq:stringParam name="msgPartIndex">pack_data</xq:stringParam>
         <xq:xmlParam name="helperFiles"/>
         <xq:stringParam name="validating">false</xq:stringParam>
@@ -44,7 +44,7 @@
     </xq:step>
     <xq:step name="fill response" type="SERVICE" endpoint_ref="Transform">
       <xq:params>
-        <xq:stringParam name="stylesheetURL" url="sonicfs:///RosEuroBank/MailingWS/resources/xsl/transform_response_status.xsl"/>
+        <xq:stringParam name="stylesheetURL" url="sonicfs:///Domain/MailingWS/resources/xsl/transform_response_status.xsl"/>
         <xq:stringParam name="msgPartIndex">response</xq:stringParam>
         <xq:xmlParam name="helperFiles"/>
         <xq:stringParam name="validating">false</xq:stringParam>
