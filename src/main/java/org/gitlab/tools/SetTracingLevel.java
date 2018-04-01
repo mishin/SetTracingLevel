@@ -2,6 +2,7 @@ package org.gitlab.tools;
 
 import org.apache.commons.io.IOUtils;
 import org.gitlab.tools.Logic.ZipReplacer;
+import org.zeroturnaround.zip.ZipUtil;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -10,29 +11,45 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
 import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
+import java.util.*;
+import java.net.URI;
+import java.nio.file.Path;
+import java.nio.file.*;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.Enumeration;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 class SetTracingLevel {
 
+
+    private static final int BUFFER_SIZE = 1024;
+    private static final String PROP_FILENAME = "config.properties";
+    private String archiveName;
+    private String tmpXmlFileName;
+//    private String fileForChange;
+    private String trackingLevel;
+    private String trackingEndpointTopic;
+
     SetTracingLevel(Properties prop) {
         archiveName = prop.getProperty("archive_name");
-        fileForChange = prop.getProperty("file_for_change");
+//        fileForChange = prop.getProperty("file_for_change");
         trackingLevel = prop.getProperty("tracking_level");
         trackingEndpointTopic = prop.getProperty("tracking_endpoint_topic");
         tmpXmlFileName = getTmpFile();
     }
-
-    protected static final String PROP_FILENAME = "config.properties";
-    private String archiveName;
-    private String tmpXmlFileName;
-    private String fileForChange;
-    private String trackingLevel;
-    private String trackingEndpointTopic;
-
 
     public static void main(String[] args) throws IOException {
         /**
@@ -41,7 +58,7 @@ class SetTracingLevel {
         SetTracingLevel setTracingLevel = new SetTracingLevel(readProperties());
         // create a buffer to improve copy performance later.
         setTracingLevel.copyZipToFile();
-        setTracingLevel.replaceTraceLevel();
+//        setTracingLevel.replaceTraceLevel();
 /*
         TFile archive = new TFile("archive.zip");
         for (String member : archive.list())
@@ -49,17 +66,19 @@ class SetTracingLevel {
         // append a file to archive under different name
 //        TFile.cp(new File("existingFile.txt"), new TFile("archive.zip", "entry.txt"));
 //        ZipReplacer.zipFileReplace(setTracingLevel.getArchiveName(),setTracingLevel.getFileForChange(), tmpXmlFileName);
+
+//        ZipReplacer.zipFileReplace();
     }
 
     /**
      * Modifies, adds or deletes file(s) from a existing zip file.
      *
-     * @param zipFile the original zip file
-     * @param newZipFile the destination zip file
-     * @param filesToAddOrOverwrite the names of the files to add or modify from the original file
+     * @param zipFile                           the original zip file
+     * @param newZipFile                        the destination zip file
+     * @param filesToAddOrOverwrite             the names of the files to add or modify from the original file
      * @param filesToAddOrOverwriteInputStreams the input streams containing the content of the files
-     * to add or modify from the original file
-     * @param filesToDelete the names of the files to delete from the original file
+     *                                          to add or modify from the original file
+     * @param filesToDelete                     the names of the files to delete from the original file
      * @throws IOException if the new file could not be written
      */
     public static void modifyZipFile(File zipFile,
@@ -125,54 +144,46 @@ class SetTracingLevel {
 
     }
 
-private void replaceFileInZip(){
-    Map<String, String> env = new HashMap<>();
-    env.put("create", "true");
-    Path path = Paths.get("test.zip");
-    URI uri = URI.create("jar:" + path.toUri());
-    try (FileSystem fs = FileSystems.newFileSystem(uri, env))
-    {
-        Path nf = fs.getPath("new.txt");
-        try (Writer writer = Files.newBufferedWriter(nf, StandardCharsets.UTF_8, StandardOpenOption.CREATE)) {
-            writer.write("hello");
+    private void replaceFileInZip() {
+        Map<String, String> env = new HashMap<>();
+        env.put("create", "true");
+        Path path = Paths.get("test.zip");
+        URI uri = URI.create("jar:" + path.toUri());
+        try (FileSystem fs = FileSystems.newFileSystem(uri, env)) {
+            Path nf = fs.getPath("new.txt");
+            try (Writer writer = Files.newBufferedWriter(nf, StandardCharsets.UTF_8, StandardOpenOption.CREATE)) {
+                writer.write("hello");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-    } catch (IOException e) {
-        e.printStackTrace();
     }
-}
 
-    public static void addFilesToZip(File source, File[] files)
-    {
-        try
-        {
+    public static void addFilesToZip(File source, File[] files) {
+        try {
 
             File tmpZip = File.createTempFile(source.getName(), null);
             tmpZip.delete();
-            if(!source.renameTo(tmpZip))
-            {
+            if (!source.renameTo(tmpZip)) {
                 throw new Exception("Could not make temp file (" + source.getName() + ")");
             }
             byte[] buffer = new byte[1024];
             ZipInputStream zin = new ZipInputStream(new FileInputStream(tmpZip));
             ZipOutputStream out = new ZipOutputStream(new FileOutputStream(source));
 
-            for(int i = 0; i < files.length; i++)
-            {
+            for (int i = 0; i < files.length; i++) {
                 InputStream in = new FileInputStream(files[i]);
                 out.putNextEntry(new ZipEntry(files[i].getName()));
-                for(int read = in.read(buffer); read > -1; read = in.read(buffer))
-                {
+                for (int read = in.read(buffer); read > -1; read = in.read(buffer)) {
                     out.write(buffer, 0, read);
                 }
                 out.closeEntry();
                 in.close();
             }
 
-            for(ZipEntry ze = zin.getNextEntry(); ze != null; ze = zin.getNextEntry())
-            {
+            for (ZipEntry ze = zin.getNextEntry(); ze != null; ze = zin.getNextEntry()) {
                 out.putNextEntry(ze);
-                for(int read = zin.read(buffer); read > -1; read = zin.read(buffer))
-                {
+                for (int read = zin.read(buffer); read > -1; read = zin.read(buffer)) {
                     out.write(buffer, 0, read);
                 }
                 out.closeEntry();
@@ -180,46 +191,119 @@ private void replaceFileInZip(){
 
             out.close();
             tmpZip.delete();
-        }
-        catch(Exception e)
-        {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
+    private void extractSubDir(String archiveName, String targetDir)
+            throws IOException {
+        byte[] buffer = new byte[BUFFER_SIZE];
 
+        // Создаем каталог, куда будут распакованы файлы
+        final String dstDirectory = targetDir;
+        final File dstDir = new File(dstDirectory);
+        if (!dstDir.exists()) {
+            dstDir.mkdir();
+        }
+
+        try {
+            // Получаем содержимое ZIP архива
+            final ZipInputStream zis = new ZipInputStream(
+                    new FileInputStream(archiveName));
+            ZipEntry ze = zis.getNextEntry();
+            String nextFileName;
+            while (ze != null) {
+                nextFileName = ze.getName();
+                File nextFile = new File(dstDirectory + File.separator
+                        + nextFileName);
+                System.out.println("Распаковываем: "
+                        + nextFile.getAbsolutePath());
+                // Если мы имеем дело с каталогом - надо его создать. Если
+                // этого не сделать, то не будут созданы пустые каталоги
+                // архива
+                if (ze.isDirectory()) {
+                    nextFile.mkdir();
+                } else {
+                    // Создаем все родительские каталоги
+                    new File(nextFile.getParent()).mkdirs();
+                    // Записываем содержимое файла
+                    try (FileOutputStream fos
+                                 = new FileOutputStream(nextFile)) {
+                        int length;
+                        while ((length = zis.read(buffer)) > 0) {
+                            fos.write(buffer, 0, length);
+                        }
+                    }
+                }
+                ze = zis.getNextEntry();
+            }
+            zis.closeEntry();
+            zis.close();
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(org.gitlab.tools.SetTracingLevel.class.getName())
+                    .log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
+            Logger.getLogger(org.gitlab.tools.SetTracingLevel.class.getName())
+                    .log(Level.SEVERE, null, ex);
+        }
+    }
 
     private void copyZipToFile() {
-        showFilesInArchive();
-        ZipInputStream stream = null;
         try {
-            stream = new ZipInputStream(new FileInputStream(getArchiveName()));
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
-        System.out.println("getFileForChange() = " + getFileForChange());
-        try {
-            // now iterate through each item in the stream. The get next
-            // entry call will return a ZipEntry for each file in the
-            // stream
-            ZipEntry entry;
-            while ((entry = stream.getNextEntry()) != null) {
-                if (entry.getName().equals(getFileForChange())) {
-                    copyArchiveFileToTemporeryFile(stream);
+            Path tmp1 = Files.createTempDirectory(null);
+            System.out.println("TMP1: " + tmp1.toString());
+//            Path path = Paths.get(archiveName);
+//            extractSubDir(archiveName, tmp1.toString());
+            ZipUtil.unpack(new File(archiveName), new File(tmp1.toString()));
+            String pathString = tmp1.toString();
+            Files.walkFileTree(Paths.get(pathString), new HashSet<>(), Integer.MAX_VALUE, new FileVisitor<Path>() {
+                @Override
+                public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs)
+                        throws IOException {
+//                    System.out.println("preVisitDirectory: " + dir);
+                    return FileVisitResult.CONTINUE;
                 }
-            }
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
+
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
+                        throws IOException {
+                    System.out.println("Replace trace in File: " + file);
+                    replaceTraceLevel(file.toString());
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult visitFileFailed(Path file, IOException exc)
+                        throws IOException {
+                    System.out.println("visitFileFailed: " + file);
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult postVisitDirectory(Path dir, IOException exc)
+                        throws IOException {
+//                    System.out.println("postVisitDirectory: " + dir);
+                    return FileVisitResult.CONTINUE;
+                }
+            });//            replaceTraceLevel();
+            ZipUtil.pack(new File(pathString), new File(archiveName));
         } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            // we must always close the zip file.
-            try {
-                stream.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            System.err.println(e);
         }
+
+    }
+
+
+
+
+    private static void write(InputStream in, OutputStream out) throws IOException {
+        byte[] buffer = new byte[1024];
+        int len;
+        while ((len = in.read(buffer)) >= 0)
+            out.write(buffer, 0, len);
+        out.close();
+        in.close();
     }
 
     private void copyArchiveFileToTemporeryFile(ZipInputStream stream) throws IOException {
@@ -294,55 +378,7 @@ private void replaceFileInZip(){
     }
 
 
-    private void replaceTraceProperties() {
-        //делаем переменные подстановки понятными для docx4j
-        String tmpXmlFileName = getTmpFile();
-
-        File tmpXmlFile = new File(tmpXmlFileName);
-
-        try {
-            modifyTextFileInZip();
-        } catch (IOException e) {
-            System.out.println("не удалось открыть файл archiveName = " + archiveName);
-            e.printStackTrace();
-        }
-        ZipReplacer.getFileFromZip(archiveName, fileForChange, tmpXmlFileName); //вытаскиваем document.xml из docx
-        /*try {
-*//*
-            <xq:trackingDetails trackingLevel="0">
-            <xq:eventEndpoint endpoint_ref="Broker_Tracking.Entry" type="ENDPOINT"/>
-            <xq:idGenerator class="com.sonicsw.xqimpl.service.accessor.ScriptEvaluator"/>
-            </xq:trackingDetails>
-*//*
-
-            ZipReplacer.regexpReplacer(tmpXmlFileName,
-                    "<xq:eventEndpoint endpoint_ref=\"(.*?)\" type=\"ENDPOINT\"/>",
-                    "<xq:eventEndpoint endpoint_ref=\"" + trackingEndpointTopic + "\" type=\"ENDPOINT\"/>");
-            ZipReplacer.regexpReplacer(tmpXmlFileName,
-                    "<xq:trackingDetails trackingLevel=\"(.*?)\">",
-                    "<xq:trackingDetails trackingLevel=\"" + trackingLevel + "\">");
-
-        } catch (IOException e2) {
-            e2.printStackTrace();
-        }
-        ZipReplacer.zipFileReplace(archiveName, fileForChange, tmpXmlFileName);
-        tmpXmlFile.delete();*/
-    }
-
-    void modifyTextFileInZip() throws IOException {
-        Path zipFilePath = Paths.get(getArchiveName());
-        try (FileSystem fs = FileSystems.newFileSystem(zipFilePath, null)) {
-            Path source = fs.getPath(getFileForChange());
-            Path temp = fs.getPath("/___abc___.txt");
-            if (Files.exists(temp)) {
-                throw new IOException("temp file exists, generate another name");
-            }
-            Files.move(source, temp);
-            streamCopy(temp, source);
-            Files.delete(temp);
-        }
-    }
-
+   
     void streamCopy(Path src, Path dst) throws IOException {
         try (BufferedReader br = new BufferedReader(
                 new InputStreamReader(Files.newInputStream(src)));
@@ -381,7 +417,7 @@ private void replaceFileInZip(){
     }
 
 
-    private void replaceTraceLevel() {
+    private void replaceTraceLevel(String ProcessFile) {
         try {
 
 /*            <xq:trackingDetails trackingLevel="0">
@@ -390,10 +426,10 @@ private void replaceFileInZip(){
             </xq:trackingDetails>*/
 
 
-            ZipReplacer.regexpReplacer(getTmpXmlFileName(),
+            regexpReplacer(ProcessFile,
                     "<xq:eventEndpoint endpoint_ref=\"(.*?)\" type=\"ENDPOINT\"/>",
                     "<xq:eventEndpoint endpoint_ref=\"" + getTrackingEndpointTopic() + "\" type=\"ENDPOINT\"/>");
-            ZipReplacer.regexpReplacer(getTmpXmlFileName(),
+            regexpReplacer(ProcessFile,
                     "<xq:trackingDetails trackingLevel=\"(.*?)\">",
                     "<xq:trackingDetails trackingLevel=\"" + getTrackingLevel() + "\">");
 
@@ -402,13 +438,45 @@ private void replaceFileInZip(){
         }
     }
 
+
+    private static void regexpReplacer(String docPath, String regexp, String toInsert) throws IOException{
+        FileInputStream fis = null;
+        try {
+            fis = new FileInputStream(docPath);
+        } catch (FileNotFoundException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        String xmlContent = "";
+        assert fis != null;
+        InputStreamReader isr = new InputStreamReader(fis, "UTF-8");
+        BufferedReader bReader = new BufferedReader(isr);
+        String buf;
+
+        while((buf = bReader.readLine()) != null){
+            xmlContent += buf + "\n";
+        }
+
+        bReader.close();
+
+        xmlContent = xmlContent.replaceAll(regexp, toInsert);
+
+        FileOutputStream fos = new FileOutputStream(docPath);
+        OutputStreamWriter osw = new OutputStreamWriter(fos, "UTF-8");
+        BufferedWriter bWriter = new BufferedWriter(osw);
+        bWriter.write(xmlContent);
+        bWriter.flush();
+        bWriter.close();
+    }
+
+
     public String getArchiveName() {
         return archiveName;
     }
 
-    public String getFileForChange() {
-        return fileForChange;
-    }
+//    public String getFileForChange() {
+//        return fileForChange;
+//    }
 
     public String getTrackingLevel() {
         return trackingLevel;

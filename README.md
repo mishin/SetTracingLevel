@@ -9,7 +9,7 @@ mvn clean package
 и запустить в папке target  
 ````
 SetTracingLevel.bat
-```
+
 он автоматически выполнит матод  main,  
 а результат можно будет увидеть в логе  
 SetTracingLevel.log  
