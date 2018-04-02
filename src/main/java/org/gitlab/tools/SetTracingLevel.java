@@ -38,20 +38,19 @@ class SetTracingLevel {
         try (DirectoryStream<Path> pathList = Files.newDirectoryStream(Paths.get(getArchiveDirectory()),
                 documentFilter)) {
             for (Path path : pathList) {
-                changeTracingLevelInFile(path.toString());
+                changeTracingLevelInFile(path.toFile());
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    private void changeTracingLevelInFile(String archiveName) {
+    private void changeTracingLevelInFile(File archiveName) {
         try {
             Path tempDirectory = Files.createTempDirectory(null);
-            ZipUtil.unpack(new File(archiveName), tempDirectory.toFile());
-            String pathString = tempDirectory.toString();
-            changeLevelInAllFilesInDirectory(pathString);
-            ZipUtil.pack(new File(pathString), new File(archiveName));
+            ZipUtil.unpack(archiveName, tempDirectory.toFile());
+            changeLevelInAllFilesInDirectory(tempDirectory);
+            ZipUtil.pack(tempDirectory.toFile(),archiveName);
             FileUtils.deleteDirectory(tempDirectory.toFile());
         } catch (IOException e) {
             e.printStackTrace();
@@ -59,8 +58,8 @@ class SetTracingLevel {
 
     }
 
-    private void changeLevelInAllFilesInDirectory(String pathString) throws IOException {
-        Files.walkFileTree(Paths.get(pathString), new HashSet<>(), Integer.MAX_VALUE, new FileVisitor<Path>() {
+    private void changeLevelInAllFilesInDirectory(Path tempDirectory) throws IOException {
+        Files.walkFileTree(tempDirectory, new HashSet<>(), Integer.MAX_VALUE, new FileVisitor<Path>() {
             @Override
             public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs)
                     throws IOException {
