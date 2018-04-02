@@ -1,6 +1,7 @@
 package org.gitlab.tools;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.zeroturnaround.zip.ZipUtil;
 
 import java.io.*;
@@ -30,32 +31,86 @@ class SetTracingLevel {
     }
 
     private void changeTracingLevelInDirectory() {
-        processSdmFiles();
-        processXarFiles(getArchiveDirectory());
-    }
-
-    private void processSdmFiles() {
-        System.out.println(String.format("Set Trace level to all sdm files in directory: %s",getArchiveDirectory()));
+        System.out.println(String.format("Set Trace level to all xar files in directory: %s", getArchiveDirectory()));
         DirectoryStream.Filter<Path> documentFilter = entry -> {
             String fileName = entry.getFileName().toString();
-            return fileName != null && fileName.endsWith("sdm");
+            return fileName != null && (fileName.endsWith("xar") || fileName.endsWith("sdm"));
         };
         try (DirectoryStream<Path> pathList = Files.newDirectoryStream(Paths.get(getArchiveDirectory()),
                 documentFilter)) {
             for (Path path : pathList) {
-                changeTracingLevelInSdmFile(path.toFile());
+                switch (FilenameUtils.getExtension(path.toString())) {
+                    case "xar":
+                        changeTracingLevelInFile(path.toFile());
+                        break;
+                    case "sdm":
+                        changeTracingLevelInSdmFile(path.toFile());
+                        break;
+                }
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
+    static private Properties readProperties() {
+        Properties prop = new Properties();
+        InputStream input = null;
+
+        try {
+            input = new FileInputStream(PROP_FILENAME);
+            // load a properties file
+            prop.load(input);
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        } finally {
+            if (input != null) {
+                try {
+                    input.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        return prop;
+    }
+
+    private static void regexpReplacer(String docPath, String regexp, String toInsert) throws IOException {
+        FileInputStream fis = null;
+        try {
+            fis = new FileInputStream(docPath);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        String xmlContent = "";
+        assert fis != null;
+        InputStreamReader isr = new InputStreamReader(fis, "UTF-8");
+        BufferedReader bReader = new BufferedReader(isr);
+        String buf;
+
+        while ((buf = bReader.readLine()) != null) {
+            xmlContent += buf + "\n";
+        }
+
+        bReader.close();
+
+        xmlContent = xmlContent.replaceAll(regexp, toInsert);
+
+        FileOutputStream fos = new FileOutputStream(docPath);
+        OutputStreamWriter osw = new OutputStreamWriter(fos, "UTF-8");
+        BufferedWriter bWriter = new BufferedWriter(osw);
+        bWriter.write(xmlContent);
+        bWriter.flush();
+        bWriter.close();
+    }
+
+
     private void changeTracingLevelInSdmFile(File archiveName) {
         try {
             Path tempDirectory = Files.createTempDirectory(null);
             ZipUtil.unpack(archiveName, tempDirectory.toFile());
             processXarInSdmDirectory(tempDirectory);
-            ZipUtil.pack(tempDirectory.toFile(),archiveName);
+            ZipUtil.pack(tempDirectory.toFile(), archiveName);
             FileUtils.deleteDirectory(tempDirectory.toFile());
         } catch (IOException e) {
             e.printStackTrace();
@@ -98,28 +153,12 @@ class SetTracingLevel {
 
     }
 
-    private void processXarFiles(String archiveDirectory) {
-        System.out.println(String.format("Set Trace level to all xar files in directory: %s",archiveDirectory));
-        DirectoryStream.Filter<Path> documentFilter = entry -> {
-            String fileName = entry.getFileName().toString();
-            return fileName != null && fileName.endsWith("xar");
-        };
-        try (DirectoryStream<Path> pathList = Files.newDirectoryStream(Paths.get(getArchiveDirectory()),
-                documentFilter)) {
-            for (Path path : pathList) {
-                changeTracingLevelInFile(path.toFile());
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
     private void changeTracingLevelInFile(File archiveName) {
         try {
             Path tempDirectory = Files.createTempDirectory(null);
             ZipUtil.unpack(archiveName, tempDirectory.toFile());
             changeLevelInAllFilesInDirectory(tempDirectory);
-            ZipUtil.pack(tempDirectory.toFile(),archiveName);
+            ZipUtil.pack(tempDirectory.toFile(), archiveName);
             FileUtils.deleteDirectory(tempDirectory.toFile());
         } catch (IOException e) {
             e.printStackTrace();
@@ -157,30 +196,6 @@ class SetTracingLevel {
         });
     }
 
-
-    static private Properties readProperties() {
-        Properties prop = new Properties();
-        InputStream input = null;
-
-        try {
-            input = new FileInputStream(PROP_FILENAME);
-            // load a properties file
-            prop.load(input);
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        } finally {
-            if (input != null) {
-                try {
-                    input.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-        return prop;
-    }
-
-
     private void replaceTraceLevel(String ProcessFile) {
         try {
 
@@ -201,37 +216,6 @@ class SetTracingLevel {
             e2.printStackTrace();
         }
     }
-
-
-    private static void regexpReplacer(String docPath, String regexp, String toInsert) throws IOException {
-        FileInputStream fis = null;
-        try {
-            fis = new FileInputStream(docPath);
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
-        String xmlContent = "";
-        assert fis != null;
-        InputStreamReader isr = new InputStreamReader(fis, "UTF-8");
-        BufferedReader bReader = new BufferedReader(isr);
-        String buf;
-
-        while ((buf = bReader.readLine()) != null) {
-            xmlContent += buf + "\n";
-        }
-
-        bReader.close();
-
-        xmlContent = xmlContent.replaceAll(regexp, toInsert);
-
-        FileOutputStream fos = new FileOutputStream(docPath);
-        OutputStreamWriter osw = new OutputStreamWriter(fos, "UTF-8");
-        BufferedWriter bWriter = new BufferedWriter(osw);
-        bWriter.write(xmlContent);
-        bWriter.flush();
-        bWriter.close();
-    }
-
 
     private String getTrackingLevel() {
         return trackingLevel;
