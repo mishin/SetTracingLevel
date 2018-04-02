@@ -16,8 +16,8 @@ SetTracingLevel.log
 
 config.properties содержит данные:  
 ````
-file_for_change=run.mailing_service_vpk.ws.esbp
-archive_name=c:/Sonic2015/Workbench10.0/workspace/MailingWS/target/out/MailingWS_mapped.xar
-tracking_endpoint_topic=Broker_Tracking.Entry
-trackingLevel=4
+file_for_change=run.mailing_service_vpk.ws.esbp  
+archive_name=c:/Sonic2015/Workbench10.0/workspace/MailingWS/target/out/MailingWS_mapped.xar  
+tracking_endpoint_topic=Broker_Tracking.Entry  
+trackingLevel=4  
 ````
