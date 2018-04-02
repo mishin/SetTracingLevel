@@ -34,7 +34,7 @@ class SetTracingLevel {
         System.out.println(String.format("Set Trace level to all xar files in directory: %s", getArchiveDirectory()));
         DirectoryStream.Filter<Path> documentFilter = entry -> {
             String fileName = entry.getFileName().toString();
-            return fileName != null && (fileName.endsWith("xar") || fileName.endsWith("sdm"));
+            return fileName != null && (fileName.endsWith("xar") || fileName.endsWith("zip"));
         };
         try (DirectoryStream<Path> pathList = Files.newDirectoryStream(Paths.get(getArchiveDirectory()),
                 documentFilter)) {
@@ -43,7 +43,7 @@ class SetTracingLevel {
                     case "xar":
                         changeTracingLevelInFile(path.toFile());
                         break;
-                    case "sdm":
+                    case "zip":
                         changeTracingLevelInSdmFile(path.toFile());
                         break;
                 }
