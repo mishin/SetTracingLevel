@@ -129,8 +129,10 @@ class SetTracingLevel {
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
                         throws IOException {
-                    System.out.println("Replace trace in File: " + file);
-                    changeTracingLevelInFile(file.toFile());
+                    if (file.toString().endsWith(".xar")) {
+                        System.out.println("Process xar files in SDM directory: " + file);
+                        changeTracingLevelInFile(file.toFile());
+                    }
                     return FileVisitResult.CONTINUE;
                 }
 
@@ -176,8 +178,11 @@ class SetTracingLevel {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
                     throws IOException {
-                System.out.println("Replace trace in File: " + file);
-                replaceTraceLevel(file.toString());
+                if (file.toString().endsWith(".xml")) {
+                    System.out.println("Replace trace in xml File: " + file);
+                    System.out.println(file.getFileName());
+                    replaceTraceLevel(file.toString());
+                }
                 return FileVisitResult.CONTINUE;
             }
 
