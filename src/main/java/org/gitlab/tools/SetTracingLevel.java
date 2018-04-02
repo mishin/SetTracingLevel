@@ -180,7 +180,6 @@ class SetTracingLevel {
                     throws IOException {
                 if (file.toString().endsWith(".xml")) {
                     System.out.println("Replace trace in xml File: " + file);
-                    System.out.println(file.getFileName());
                     replaceTraceLevel(file.toString());
                 }
                 return FileVisitResult.CONTINUE;
