@@ -15,7 +15,7 @@ SetTracingLevel.bat
 SetTracingLevel.log  
 
 config.properties содержит данные:  
-````
+
 archive_directory=d:/distrib/java/github/SetTracingLevel/target
 tracking_endpoint_topic=Broker_Tracking.Entry  
 trackingLevel=4  
