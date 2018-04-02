@@ -1,5 +1,5 @@
 # SetTracingLevel
-для автоматической установки уровня трейса в 4 и изменения топика для него
+для автоматической установки уровня трейса в 4 для всех фалов xar в директории
 
 ### Инструкция для автоматической установки уровня трейса в 4 и изменения топика для него
 Для запуска проекта достаточно его собрать  
@@ -16,8 +16,7 @@ SetTracingLevel.log
 
 config.properties содержит данные:  
 ````
-file_for_change=run.mailing_service_vpk.ws.esbp  
-archive_name=c:/Sonic2015/Workbench10.0/workspace/MailingWS/target/out/MailingWS_mapped.xar  
+archive_directory=d:/distrib/java/github/SetTracingLevel/target
 tracking_endpoint_topic=Broker_Tracking.Entry  
 trackingLevel=4  
 ````
