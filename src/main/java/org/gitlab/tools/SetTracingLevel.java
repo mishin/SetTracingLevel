@@ -30,7 +30,76 @@ class SetTracingLevel {
     }
 
     private void changeTracingLevelInDirectory() {
-        System.out.println(String.format("Set Trace level to all xar files in directory: %s",getArchiveDirectory()));
+        processSdmFiles();
+        processXarFiles(getArchiveDirectory());
+    }
+
+    private void processSdmFiles() {
+        System.out.println(String.format("Set Trace level to all sdm files in directory: %s",getArchiveDirectory()));
+        DirectoryStream.Filter<Path> documentFilter = entry -> {
+            String fileName = entry.getFileName().toString();
+            return fileName != null && fileName.endsWith("sdm");
+        };
+        try (DirectoryStream<Path> pathList = Files.newDirectoryStream(Paths.get(getArchiveDirectory()),
+                documentFilter)) {
+            for (Path path : pathList) {
+                changeTracingLevelInSdmFile(path.toFile());
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void changeTracingLevelInSdmFile(File archiveName) {
+        try {
+            Path tempDirectory = Files.createTempDirectory(null);
+            ZipUtil.unpack(archiveName, tempDirectory.toFile());
+            processXarInSdmDirectory(tempDirectory);
+            ZipUtil.pack(tempDirectory.toFile(),archiveName);
+            FileUtils.deleteDirectory(tempDirectory.toFile());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void processXarInSdmDirectory(Path tempDirectory) {
+        try {
+            Files.walkFileTree(tempDirectory, new HashSet<>(), Integer.MAX_VALUE, new FileVisitor<Path>() {
+                @Override
+                public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs)
+                        throws IOException {
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
+                        throws IOException {
+                    System.out.println("Replace trace in File: " + file);
+                    changeTracingLevelInFile(file.toFile());
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult visitFileFailed(Path file, IOException exc)
+                        throws IOException {
+                    System.out.println("visitFileFailed: " + file);
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult postVisitDirectory(Path dir, IOException exc)
+                        throws IOException {
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    private void processXarFiles(String archiveDirectory) {
+        System.out.println(String.format("Set Trace level to all xar files in directory: %s",archiveDirectory));
         DirectoryStream.Filter<Path> documentFilter = entry -> {
             String fileName = entry.getFileName().toString();
             return fileName != null && fileName.endsWith("xar");
@@ -55,7 +124,6 @@ class SetTracingLevel {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
 
     private void changeLevelInAllFilesInDirectory(Path tempDirectory) throws IOException {
