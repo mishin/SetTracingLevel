@@ -11,12 +11,12 @@ import java.util.Properties;
 
 class SetTracingLevel {
     private static final String PROP_FILENAME = "config.properties";
-    private final String archiveName;
+    private final String archiveDirectory;
     private final String trackingLevel;
     private final String trackingEndpointTopic;
 
-    SetTracingLevel(Properties prop) {
-        archiveName = prop.getProperty("archive_name");
+    private SetTracingLevel(Properties prop) {
+        archiveDirectory = prop.getProperty("archive_directory");
         trackingLevel = prop.getProperty("tracking_level");
         trackingEndpointTopic = prop.getProperty("tracking_endpoint_topic");
     }
@@ -30,6 +30,22 @@ class SetTracingLevel {
     }
 
     private void changeTracingLevelInDirectory() {
+        System.out.println(String.format("Set Trace level to all xar files in directory: %s",getArchiveDirectory()));
+        DirectoryStream.Filter<Path> documentFilter = entry -> {
+            String fileName = entry.getFileName().toString();
+            return fileName != null && fileName.endsWith("xar");
+        };
+        try (DirectoryStream<Path> pathList = Files.newDirectoryStream(Paths.get(getArchiveDirectory()),
+                documentFilter)) {
+            for (Path path : pathList) {
+                changeTracingLevelInFile(path.toString());
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void changeTracingLevelInFile(String archiveName) {
         try {
             Path tempDirectory = Files.createTempDirectory(null);
             ZipUtil.unpack(new File(archiveName), tempDirectory.toFile());
@@ -125,7 +141,6 @@ class SetTracingLevel {
         try {
             fis = new FileInputStream(docPath);
         } catch (FileNotFoundException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
         String xmlContent = "";
@@ -157,5 +172,9 @@ class SetTracingLevel {
 
     private String getTrackingEndpointTopic() {
         return trackingEndpointTopic;
+    }
+
+    private String getArchiveDirectory() {
+        return archiveDirectory;
     }
 }
